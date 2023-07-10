@@ -1,4 +1,4 @@
-//
+ 			//
 // Created by Carlos on 11/1/21.
 //
 
@@ -13,6 +13,91 @@
 #define STUCK_OUT()
 #define STUCK_WHILE(x) STUCK_IN() while(x)
 #define EC_TIMEOUTMON 500
+
+ec_ODlistt ODlist;
+ec_OElistt OElist;
+
+char* dtype2string(uint16 dtype, uint16 bitlen)
+{
+    static char str[32] = { 0 };
+
+    switch(dtype)
+    {
+        case ECT_BOOLEAN:
+            sprintf(str, "BOOLEAN");
+            break;
+        case ECT_INTEGER8:
+            sprintf(str, "INTEGER8");
+            break;
+        case ECT_INTEGER16:
+            sprintf(str, "INTEGER16");
+            break;
+        case ECT_INTEGER32:
+            sprintf(str, "INTEGER32");
+            break;
+        case ECT_INTEGER24:
+            sprintf(str, "INTEGER24");
+            break;
+        case ECT_INTEGER64:
+            sprintf(str, "INTEGER64");
+            break;
+        case ECT_UNSIGNED8:
+            sprintf(str, "UNSIGNED8");
+            break;
+        case ECT_UNSIGNED16:
+            sprintf(str, "UNSIGNED16");
+            break;
+        case ECT_UNSIGNED32:
+            sprintf(str, "UNSIGNED32");
+            break;
+        case ECT_UNSIGNED24:
+            sprintf(str, "UNSIGNED24");
+            break;
+        case ECT_UNSIGNED64:
+            sprintf(str, "UNSIGNED64");
+            break;
+        case ECT_REAL32:
+            sprintf(str, "REAL32");
+            break;
+        case ECT_REAL64:
+            sprintf(str, "REAL64");
+            break;
+        case ECT_BIT1:
+            sprintf(str, "BIT1");
+            break;
+        case ECT_BIT2:
+            sprintf(str, "BIT2");
+            break;
+        case ECT_BIT3:
+            sprintf(str, "BIT3");
+            break;
+        case ECT_BIT4:
+            sprintf(str, "BIT4");
+            break;
+        case ECT_BIT5:
+            sprintf(str, "BIT5");
+            break;
+        case ECT_BIT6:
+            sprintf(str, "BIT6");
+            break;
+        case ECT_BIT7:
+            sprintf(str, "BIT7");
+            break;
+        case ECT_BIT8:
+            sprintf(str, "BIT8");
+            break;
+        case ECT_VISIBLE_STRING:
+            sprintf(str, "VISIBLE_STR(%d)", bitlen);
+            break;
+        case ECT_OCTET_STRING:
+            sprintf(str, "OCTET_STR(%d)", bitlen);
+            break;
+        default:
+            sprintf(str, "dt:0x%4.4X (%d)", dtype, bitlen);
+    }
+    return str;
+}
+
 
 namespace bumpybot_hw
 {
@@ -666,12 +751,12 @@ static int everest_setup(uint16 slave)
 
               if(tSM == 3) // outputs
               {
-                int Tsize = si_PDOassign(slave, ECT_SDO_PDOASSIGN + iSM, (int)(ec_slave[slave].outputs - (uint8 *)&IOmap[0]), outputs_bo );
+                int Tsize = si_PDOassign(slave_idx, ECT_SDO_PDOASSIGN + iSM, (int)(ec_slave[slave_idx].outputs - (uint8 *)&IOmap[0]), outputs_bo );
                 outputs_bo += Tsize;
               }
               if(tSM == 4) // inputs
               {
-                int Tsize = si_PDOassign(slave, ECT_SDO_PDOASSIGN + iSM, (int)(ec_slave[slave].inputs - (uint8 *)&IOmap[0]), inputs_bo );
+                int Tsize = si_PDOassign(slave_idx, ECT_SDO_PDOASSIGN + iSM, (int)(ec_slave[slave_idx].inputs - (uint8 *)&IOmap[0]), inputs_bo );
                 inputs_bo += Tsize;
               }
             }
