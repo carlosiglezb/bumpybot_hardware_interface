@@ -14,8 +14,8 @@
     <rosparam command="load" file="$(find trikey_control)/config/trikey_control.yaml"/>
 
     <!-- Load controller manager (TODO add joint_state_controller) 
-    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
-          output="screen" ns="/trikey" args="trikey_base_controller"/>
+    <!-- <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+          output="screen" ns="/trikey" args="trikey_base_controller"/> -->
     -->
 
     <group if="$(arg use_lidar)">
