@@ -1,6 +1,6 @@
 <launch>
    
-    <arg name="use_lidar" default="false"/>
+    <arg name="use_lidar" default="true"/>
 
     <!-- Load robot model -->
     <param name="robot_description"
