@@ -4,7 +4,7 @@
 
     <!-- Load robot model -->
     <param name="robot_description"
-    	   command="$(find xacro)/xacro '$(find trikey_description)/urdf/TrikeyBaseAssembly.urdf.xacro'"/>
+       command="$(find xacro)/xacro --inorder '$(find trikey_description)/urdf/urdf_generator/robot.urdf.xacro'"/>
 
     <!-- Load hardware interface -->
     <node name="bumpybot_hardware_interface" pkg="bumpybot_hw_interface" type="bumpybot_hw_main"

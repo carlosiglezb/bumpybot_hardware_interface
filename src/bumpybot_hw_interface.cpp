@@ -124,6 +124,7 @@ namespace bumpybot_hw
     // setup publisher/subscriber for motor states/commands
     js_pub = nh_.advertise<sensor_msgs::JointState>("/joint_states", 10);
     temp_pub = nh_.advertise<sensor_msgs::JointState>("servo_temp", 10);
+    torque_sensor_pub = nh_.advertise<sensor_msgs::JointState>("torque_sensor_v", 10);
 //    temp_pub = nh_.advertise<bumpybot_hw_interface::ServoTemp>("servo_temp", 10);
     js1_sub = nh_.subscribe("/wheel1_commands", 100, &BumpybotHWInterface::cmd1Callback, this);
     js2_sub = nh_.subscribe("/wheel2_commands", 100, &BumpybotHWInterface::cmd2Callback, this);
@@ -203,6 +204,8 @@ namespace bumpybot_hw
     js_msg.effort.resize(num_joints_);
     temp_msg.name.resize(num_joints_);
     temp_msg.position.resize(num_joints_);
+    torque_sensor_msg.name.resize(num_joints_);
+    torque_sensor_msg.position.resize(num_joints_);
 //    temp_msg.value_in_C.resize(num_joints_);
 
     // Command
@@ -213,6 +216,7 @@ namespace bumpybot_hw
     {
       js_msg.name[j_id] = joint_names_[j_id].c_str();
       temp_msg.name[j_id] = joint_names_[j_id].c_str();
+      torque_sensor_msg.name[j_id] = joint_names_[j_id].c_str();
     }
 
     // Initialize interfaces for each joint
@@ -301,14 +305,25 @@ namespace bumpybot_hw
       float temp_f = ((union convUIntToFloat){.u32 = temp}).f32;
       temp_msg.position[i] = temp_f;
 //      temp_msg.value_in_C[i] = temp_f;
+
+      // Torque sensor value
+      uint32_t torque_sensor_low = *(ec_slave[i+1].inputs + 21);
+      uint32_t torque_sensor_med_low = *(ec_slave[i+1].inputs + 22);
+      uint32_t torque_sensor_med_high = *(ec_slave[i+1].inputs + 23);
+      uint32_t torque_sensor_high = *(ec_slave[i+1].inputs + 24);
+      uint32_t torque_volts = (torque_sensor_high << 24) | (torque_sensor_med_high << 16) | (torque_sensor_med_low << 8) | (torque_sensor_low);
+      float torque_sens_f = ((union convUIntToFloat){.u32 = torque_volts}).f32;
+      torque_sensor_msg.position[i] = torque_sens_f;
     }
     lock.unlock();
 
     // publish robot (measurement) state
     js_msg.header.stamp = ros::Time::now();
     temp_msg.header.stamp = ros::Time::now();
+    torque_sensor_msg.header.stamp = ros::Time::now();
     js_pub.publish(js_msg);
     temp_pub.publish(temp_msg);
+    torque_sensor_pub.publish(torque_sensor_msg);
   }
 
   void BumpybotHWInterface::write(const ros::Time& time, const ros::Duration& period)
@@ -504,9 +519,14 @@ static int everest_setup(uint16 slave)
   wkc += everest_write32 (slave, 0x1A00, 0x06, dType_32);
 
   // Subindex 7
-  // Current quadrature demand
+  // Power Stage temperateure 1 - value
   dType_32 = 0x20610020;
   wkc += everest_write32 (slave, 0x1A00, 0x07, dType_32);
+
+  // Subindex 8
+  // Analog input 1 - value
+  dType_32 = 0x20820020;
+  wkc += everest_write32 (slave, 0x1A00, 0x08, dType_32);
 
   // Enable mapping by setting SubIndex 0x00 to the number of mapped objects. (0x1600 RPDO1 mapping parameter).
   dType_32 = 0x00000007;
@@ -520,7 +540,7 @@ static int everest_setup(uint16 slave)
   wkc += everest_write16 (slave, 0x1C13, 1, 0x1A00);
   wkc += everest_write16 (slave, 0x1C13, 0, 1);
 
-  if (wkc != 20)
+  if (wkc != 21)
   {
     printf(" TXPDO not configured correctly, Expected wkc: 20, got: %d\n", (wkc - 2));
     return -1;

@@ -70,6 +70,7 @@ namespace bumpybot_hw
       // ROS publishers/subscribers
       ros::Publisher js_pub;
       ros::Publisher temp_pub;
+      ros::Publisher torque_sensor_pub;
       ros::Subscriber js1_sub;
       ros::Subscriber js2_sub;
       ros::Subscriber js3_sub;
@@ -80,6 +81,7 @@ namespace bumpybot_hw
       // ROS messages published
       sensor_msgs::JointState js_msg;     // wheel position, velocity
       sensor_msgs::JointState temp_msg;  // array with servos temperatures
+      sensor_msgs::JointState torque_sensor_msg;  // array with voltages from torque sensors
 //      bumpybot_hw_interface::ServoTemp temp_msg;  // array with servos temperatures
 //      std_msgs::Float64 des_torque1_msg;   // desired wheel 1 torque
 //      std_msgs::Float64 des_torque2_msg;   // desired wheel 2 torque
