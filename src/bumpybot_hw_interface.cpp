@@ -555,9 +555,9 @@ static int everest_setup(uint16 slave)
   wkc += everest_write16 (slave, 0x1C13, 1, 0x1A00);
   wkc += everest_write16 (slave, 0x1C13, 0, 1);
 
-  if (wkc != 22)
+  if (wkc != 21)
   {
-    printf(" TXPDO not configured correctly, Expected wkc: 22, got: %d\n", (wkc - 2));
+    printf(" TXPDO not configured correctly, Expected wkc: 21, got: %d\n", (wkc - 2));
     return -1;
   }
 
