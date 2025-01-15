@@ -8,6 +8,15 @@
 #include <rosparam_shortcuts/rosparam_shortcuts.h>
 
 #include <math.h>
+#include <csignal>
+
+static bool b_terminate = false;
+
+void signalHandler(int signum) {
+    std::cout << "Killing process " << signum << std::endl;
+    b_terminate = true;
+    // exit(signum);
+}
 
 #define STUCK_IN()
 #define STUCK_OUT()
@@ -105,6 +114,7 @@ namespace bumpybot_hw
     : name_("hardware_interface"), nh_(nh)
   {
     ROS_INFO("Initializing BumpybotHWInterface");
+    signal(SIGINT, signalHandler);
 
     // Check if the URDF model needs to be loaded
     if (urdf_model == NULL)
@@ -126,9 +136,9 @@ namespace bumpybot_hw
     temp_pub = nh_.advertise<sensor_msgs::JointState>("servo_temp", 10);
     torque_sensor_pub = nh_.advertise<sensor_msgs::JointState>("torque_sensor_v", 10);
 //    temp_pub = nh_.advertise<bumpybot_hw_interface::ServoTemp>("servo_temp", 10);
-    js1_sub = nh_.subscribe("/wheel1_commands", 100, &BumpybotHWInterface::cmd1Callback, this);
-    js2_sub = nh_.subscribe("/wheel2_commands", 100, &BumpybotHWInterface::cmd2Callback, this);
-    js3_sub = nh_.subscribe("/wheel3_commands", 100, &BumpybotHWInterface::cmd3Callback, this);
+    js1_sub = nh_.subscribe("/wheel1_commands", 10, &BumpybotHWInterface::cmd1Callback, this);
+    js2_sub = nh_.subscribe("/wheel2_commands", 10, &BumpybotHWInterface::cmd2Callback, this);
+    js3_sub = nh_.subscribe("/wheel3_commands", 10, &BumpybotHWInterface::cmd3Callback, this);
 
     // ROS Services
     clear_faults_srv = nh_.advertiseService("/clear_faults", &BumpybotHWInterface::clearFaults, this);
@@ -138,6 +148,7 @@ namespace bumpybot_hw
 
   BumpybotHWInterface::~BumpybotHWInterface()
   {
+    ROS_INFO("Destroying Bumpybot HW Interface");
     ros::Duration delay(0.1);
     double start = ros::Time::now().toSec();
     while (!stopOperation()) {
@@ -146,6 +157,7 @@ namespace bumpybot_hw
       if(wait_time > 5.0)
       {
         ROS_INFO("Everest did not reach shut down state after waiting 5 seconds.");
+        // exit();
         break;
       }
     }
@@ -164,21 +176,25 @@ namespace bumpybot_hw
     {
       // Note: Make sure to change this if adding non-Everest EtherCAT devices!
       // set current back to zero
-      *(ec_slave[0].outputs + 3) = 0;
-      *(ec_slave[0].outputs + 4) = 0;
-      *(ec_slave[0].outputs + 5) = 0;
-      *(ec_slave[0].outputs + 6) = 0;
+      for(unsigned int slave_idx = 1; slave_idx <= m_num_slaves_; slave_idx++)
+      {
+      *(ec_slave[slave_idx].outputs + 3) = 0;
+      *(ec_slave[slave_idx].outputs + 4) = 0;
+      *(ec_slave[slave_idx].outputs + 5) = 0;
+      *(ec_slave[slave_idx].outputs + 6) = 0;
 
       // disable servo operation
-      *(ec_slave[0].outputs + 0) = 0x7;
+      *(ec_slave[slave_idx].outputs + 0) = 0x7;
       ec_send_processdata();
       wkc = ec_receive_processdata(EC_TIMEOUTRET);
 
       // shutdown servo
-      *(ec_slave[0].outputs + 0) = 0x6;
+      *(ec_slave[slave_idx].outputs + 0) = 0x6;
       ec_send_processdata();
       wkc = ec_receive_processdata(EC_TIMEOUTRET);
+      }
 
+      // ROS_INFO("Servo commanded to shut down");
       // check that the servo shut down
       if(*(ec_slave[0].inputs + 0) == 0x06){
         inOP = false;
@@ -261,6 +277,10 @@ namespace bumpybot_hw
 
   void BumpybotHWInterface::read(const ros::Time& time, const ros::Duration& period)
   {
+    if (b_terminate) {
+      stopOperation();
+    }
+
     boost::recursive_mutex::scoped_lock lock(r_mutex_);
     
   for(int i = 0; i < ec_slavecount; i++)
@@ -496,55 +516,64 @@ static int everest_setup(uint16 slave)
   /* Unmap all registers from PDO by setting Subindex 0x00 to zero */
   dType_32 = 0x00000000;
   wkc += everest_write32 (slave, 0x1A00, 0x00, dType_32);
+ osal_usleep(200);
 
   // Subindex 1
   // Status word
   dType_32 = 0x60410010;
   wkc += everest_write32 (slave, 0x1A00, 0x01, dType_32);
+ osal_usleep(200);
 
   // Subindex 2
   // Actual position
   dType_32 = 0x60640020;
   wkc += everest_write32 (slave, 0x1A00, 0x02, dType_32);
+ osal_usleep(200);
 
   // Subindex 3
   // Actual velocity
   dType_32 = 0x606C0020;
   wkc += everest_write32 (slave, 0x1A00, 0x03, dType_32);
+ osal_usleep(200);
 
   // Subindex 4
   // Operation mode display
   dType_32 = 0x60610008;
   wkc += everest_write32 (slave, 0x1A00, 0x04, dType_32);
+ osal_usleep(200);
 
   // Subindex 5
   // Torque actual value
   dType_32 = 0x60770010;
   wkc += everest_write32 (slave, 0x1A00, 0x05, dType_32);
+ osal_usleep(200);
 
   // Subindex 6
   // Current quadrature demand
   dType_32 = 0x20720020;
   wkc += everest_write32 (slave, 0x1A00, 0x06, dType_32);
+ osal_usleep(200);
 
   // Subindex 7
   // Power Stage temperateure 1 - value
   dType_32 = 0x20610020;
   wkc += everest_write32 (slave, 0x1A00, 0x07, dType_32);
+ osal_usleep(200);
 
   // Subindex 8
   // Analog input 1 - value
   dType_32 = 0x20820020;
   wkc += everest_write32 (slave, 0x1A00, 0x08, dType_32);
+  osal_usleep(200);
 
-// Subindex 8
-  // Analog input 1 - counts
-//  dType_32 = 0x20810010;
-//  wkc += everest_write32 (slave, 0x1A00, 0x08, dType_32);
-
+  // Subindex 9
+ // Analog input 1 - counts
+ dType_32 = 0x20810010;
+ wkc += everest_write32 (slave, 0x1A00, 0x09, dType_32);
+ osal_usleep(200);
 
   // Enable mapping by setting SubIndex 0x00 to the number of mapped objects. (0x1600 RPDO1 mapping parameter).
-  dType_32 = 0x00000008;
+  dType_32 = 0x00000009;
   wkc += everest_write32 (slave, 0x1A00, 0x00, dType_32);
 
   // Assign mapping to SM2
@@ -555,9 +584,9 @@ static int everest_setup(uint16 slave)
   wkc += everest_write16 (slave, 0x1C13, 1, 0x1A00);
   wkc += everest_write16 (slave, 0x1C13, 0, 1);
 
-  if (wkc != 21)
+  if (wkc != 22)
   {
-    printf(" TXPDO not configured correctly, Expected wkc: 21, got: %d\n", (wkc - 2));
+    printf(" TXPDO not configured correctly, Expected wkc: 22, got: %d\n", (wkc));
     return -1;
   }
 
@@ -587,6 +616,7 @@ static int everest_setup(uint16 slave)
       return false;
     }
 
+    osal_usleep(500);
     m_num_slaves_ = 0;
     STUCK_WHILE(ros::ok()) //loop until full connection is established
     {
@@ -629,7 +659,7 @@ static int everest_setup(uint16 slave)
       }
 
       //transition to SAFE_OP
-      ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 20); //EC_TIMEOUTSTATE);
+      ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE ); //EC_TIMEOUTSTATE);
 
       if(ec_slave[0].state == EC_STATE_SAFE_OP)
       {
