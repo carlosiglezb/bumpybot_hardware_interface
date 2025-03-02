@@ -316,21 +316,23 @@ namespace bumpybot_hw
       joint_effort_[i] = torque_f;
       js_msg.effort[i] = joint_effort_[i];
 
-      // Read temperature
-      int32_t temp_low = *(ec_slave[i+1].inputs + 17);
-      int32_t temp_med_low = *(ec_slave[i+1].inputs + 18);
-      int32_t temp_med_high = *(ec_slave[i+1].inputs + 19);
-      int32_t temp_high = *(ec_slave[i+1].inputs + 20);
-      int32_t temp = (temp_high << 24) | (temp_med_high << 16) | (temp_med_low << 8) | (temp_low);
-      float temp_f = ((union convIntToFloat){.i32 = temp}).f32;
-      temp_msg.position[i] = temp_f;
+//Temperature Commented out, replaced with torque sensor value from ADC
+// Leaving both in causes memory/packet timing issues (replaced one 32bit value with another)
+      // Read temperature 
+      // int32_t temp_low = *(ec_slave[i+1].inputs + 17);
+      // int32_t temp_med_low = *(ec_slave[i+1].inputs + 18);
+      // int32_t temp_med_high = *(ec_slave[i+1].inputs + 19);
+      // int32_t temp_high = *(ec_slave[i+1].inputs + 20);
+      // int32_t temp = (temp_high << 24) | (temp_med_high << 16) | (temp_med_low << 8) | (temp_low);
+      // float temp_f = ((union convIntToFloat){.i32 = temp}).f32;
+      // temp_msg.position[i] = temp_f;
 //      temp_msg.value_in_C[i] = temp_f;
 
-       // Torque sensor value
-      int32_t torque_sensor_low = *(ec_slave[i+1].inputs + 21);
-      int32_t torque_sensor_med_low = *(ec_slave[i+1].inputs + 22);
-      int32_t torque_sensor_med_high = *(ec_slave[i+1].inputs + 23);
-      int32_t torque_sensor_high = *(ec_slave[i+1].inputs + 24);
+       // Torque sensor (ADC) value
+      int32_t torque_sensor_low = *(ec_slave[i+1].inputs + 17);
+      int32_t torque_sensor_med_low = *(ec_slave[i+1].inputs + 18);
+      int32_t torque_sensor_med_high = *(ec_slave[i+1].inputs + 19);
+      int32_t torque_sensor_high = *(ec_slave[i+1].inputs + 20);
       int32_t torque_volts = (torque_sensor_high << 24) | (torque_sensor_med_high << 16) | (torque_sensor_med_low << 8) | (torque_sensor_low);
       float torque_sens_f = ((union convIntToFloat){.i32 = torque_volts}).f32;
       torque_sensor_msg.position[i] = torque_sens_f;
@@ -556,24 +558,24 @@ static int everest_setup(uint16 slave)
 
   // Subindex 7
   // Power Stage temperateure 1 - value
-  dType_32 = 0x20610020;
-  wkc += everest_write32 (slave, 0x1A00, 0x07, dType_32);
- osal_usleep(200);
+  // dType_32 = 0x20610020;
+  // wkc += everest_write32 (slave, 0x1A00, 0x07, dType_32);
+//  osal_usleep(200);
 
   // Subindex 8
   // Analog input 1 - value
   dType_32 = 0x20820020;
-  wkc += everest_write32 (slave, 0x1A00, 0x08, dType_32);
+  wkc += everest_write32 (slave, 0x1A00, 0x07, dType_32);
   osal_usleep(200);
 
-  // Subindex 9
+  // Subindex 9   
  // Analog input 1 - counts
- dType_32 = 0x20810010;
- wkc += everest_write32 (slave, 0x1A00, 0x09, dType_32);
- osal_usleep(200);
+//  dType_32 = 0x20810010;
+//  wkc += everest_write32 (slave, 0x1A00, 0x08, dType_32);
+//  osal_usleep(200);
 
   // Enable mapping by setting SubIndex 0x00 to the number of mapped objects. (0x1600 RPDO1 mapping parameter).
-  dType_32 = 0x00000009;
+  dType_32 = 0x00000007;
   wkc += everest_write32 (slave, 0x1A00, 0x00, dType_32);
 
   // Assign mapping to SM2
@@ -584,9 +586,9 @@ static int everest_setup(uint16 slave)
   wkc += everest_write16 (slave, 0x1C13, 1, 0x1A00);
   wkc += everest_write16 (slave, 0x1C13, 0, 1);
 
-  if (wkc != 22)
+  if (wkc != 20)
   {
-    printf(" TXPDO not configured correctly, Expected wkc: 22, got: %d\n", (wkc));
+    printf(" TXPDO not configured correctly, Expected wkc: 20, got: %d\n", (wkc));
     return -1;
   }
 
