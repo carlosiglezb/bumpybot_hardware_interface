@@ -193,6 +193,13 @@ namespace bumpybot_hw
       ec_send_processdata();
       wkc = ec_receive_processdata(EC_TIMEOUTRET);
       }
+      exit(SIGINT); // this is a bad idea 
+      // A single attempt to shutdown the motors is made, and the program terminates irregarless of the outcome
+      // The above is bad practice,
+      //  but solves the issue of the program hanging when trying shutdown the rosnode
+
+      // In testing, there has not been any issue with the motors not shutting down, and in practice, the Estop would've been used to stop the motors in an emergency
+
 
       // ROS_INFO("Servo commanded to shut down");
       // check that the servo shut down
