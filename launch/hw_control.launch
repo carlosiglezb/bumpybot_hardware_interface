@@ -1,6 +1,6 @@
 <launch>
    
-    <arg name="use_lidar" default="false"/>
+    <!-- <arg name="use_lidar" default="false"/> -->
     <!-- Load robot model -->
     <param name="robot_description"
        command="$(find xacro)/xacro --inorder '$(find trikey_description)/urdf/urdf_generator/robot.urdf.xacro'"/>
@@ -18,10 +18,12 @@
     -->
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>    
 
-    <group if="$(arg use_lidar)">
+    <!-- <group if="$(arg use_lidar)"> -->
         <!-- Load lidar -->
-        <include file="$(find rplidar_ros)/launch/rplidar.launch"/>
-    </group>
+        <!-- <include file="$(find rplidar_ros)/launch/rplidar.launch"/> -->
+    <!-- </group> -->
+
+    
     <!-- This will publish out /tf_static -->
 
 
